@@ -1788,7 +1788,7 @@ zarray_t *apriltag_quad_thresh(apriltag_detector_t *td, image_u8_t *im)
     int ts = threshim->stride;
 
     if (td->debug)
-        image_u8_write_pnm(threshim, "debug_threshold.pnm");
+        image_u8_write_pnm(threshim, "debug_fig4.3_threshold.pnm");
 
 
     ////////////////////////////////////////////////////////
@@ -1829,7 +1829,7 @@ zarray_t *apriltag_quad_thresh(apriltag_detector_t *td, image_u8_t *im)
 
         free(colors);
 
-        image_u8x3_write_pnm(d, "debug_segmentation.pnm");
+        image_u8x3_write_pnm(d, "debug_fig4.4_segmentation.pnm");
         image_u8x3_destroy(d);
     }
 
@@ -1866,7 +1866,7 @@ zarray_t *apriltag_quad_thresh(apriltag_detector_t *td, image_u8_t *im)
             }
         }
 
-        image_u8x3_write_pnm(d, "debug_clusters.pnm");
+        image_u8x3_write_pnm(d, "debug_fig4.5_clusters.pnm");
         image_u8x3_destroy(d);
     }
 
@@ -1879,7 +1879,7 @@ zarray_t *apriltag_quad_thresh(apriltag_detector_t *td, image_u8_t *im)
 
     zarray_t* quads = fit_quads(td, w, h, clusters, im);
 
-    if (td->debug) {
+    if (td->debug && 0) {
         FILE *f = fopen("debug_lines.ps", "w");
         fprintf(f, "%%!PS\n\n");
 

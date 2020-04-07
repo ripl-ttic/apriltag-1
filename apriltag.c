@@ -1001,6 +1001,9 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
         td->wp = workerpool_create(td->nthreads);
     }
 
+    if (td->debug)
+        image_u8_write_pnm(im_orig, "debug_fig4.1_input.pnm");
+
     timeprofile_clear(td->tp);
     timeprofile_stamp(td->tp, "init");
 
@@ -1062,9 +1065,11 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
     timeprofile_stamp(td->tp, "blur/sharp");
 
     if (td->debug)
-        image_u8_write_pnm(quad_im, "debug_preprocess.pnm");
+        image_u8_write_pnm(quad_im, "debug_fig4.2_preprocess.pnm");
 
+    // ==> Steps fig. 4.3 -> 4.5 inside this
     zarray_t *quads = apriltag_quad_thresh(td, quad_im);
+    // <== Steps fig. 4.3 -> 4.5 inside this
 
     // adjust centers of pixels so that they correspond to the
     // original full-resolution image.
@@ -1114,7 +1119,7 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
             image_u8_draw_line(im_quads, quad->p[3][0], quad->p[3][1], quad->p[0][0], quad->p[0][1], color, 1);
         }
 
-        image_u8_write_pnm(im_quads, "debug_quads_raw.pnm");
+        image_u8_write_pnm(im_quads, "debug_fig4.6a_quads_raw.pnm");
         image_u8_destroy(im_quads);
     }
 
@@ -1147,7 +1152,7 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
         free(tasks);
 
         if (im_samples != NULL) {
-            image_u8_write_pnm(im_samples, "debug_samples.pnm");
+            image_u8_write_pnm(im_samples, "debug_fig4.6c_samples.pnm");
             image_u8_destroy(im_samples);
         }
     }
@@ -1173,7 +1178,7 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
 
         }
 
-        image_u8_write_pnm(im_quads, "debug_quads_fixed.pnm");
+        image_u8_write_pnm(im_quads, "debug_fig4.6b_quads_fixed.pnm");
         image_u8_destroy(im_quads);
     }
 
@@ -1254,7 +1259,7 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
 
     ////////////////////////////////////////////////////////////////
     // Produce final debug output
-    if (td->debug) {
+    if (td->debug && 0) {
 
         image_u8_t *darker = image_u8_copy(im_orig);
         image_u8_darken(darker);
@@ -1331,12 +1336,12 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
             }
         }
 
-        image_u8x3_write_pnm(out, "debug_output.pnm");
+        image_u8x3_write_pnm(out, "debug_fig4.7_output.pnm");
         image_u8x3_destroy(out);
     }
 
     // deallocate
-    if (td->debug) {
+    if (td->debug && 0) {
         FILE *f = fopen("debug_quads.ps", "w");
         fprintf(f, "%%!PS\n\n");
 
