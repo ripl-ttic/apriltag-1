@@ -1516,10 +1516,7 @@ zarray_t* do_gradient_clusters(image_u8_t* threshim, int ts, int y0, int y1, int
             // Note that any given pixel might be added to multiple
             // different clusters. But in the common case, a given
             // pixel will be added multiple times to the same cluster,
-            // which increases the size of the cluster and thus the
-            // computational costs.
-            //
-            // A possible optimization would be to combine entries
+            // which inzarray_tle optimization would be to combine entries
             // within the same cluster.
 
 #define DO_CONN(dx, dy)                                                 \
@@ -1777,6 +1774,23 @@ zarray_t* fit_quads(apriltag_detector_t *td, int w, int h, zarray_t* clusters, i
     return quads;
 }
 
+
+ void *bilinear_inter(apriltag_detector_t *td, zarray_t *clusters, image_u8_t *image){
+    //zarray_t *dst = zarray_create(sizeof(zarray_t*));
+    for (int i = 0; i < zarray_size(clusters); i++){
+        zarray_t *cluster;
+        zarray_get(clusters, i, &cluster);
+        for (int j = 0; j < zarray_size(cluster); j++) {
+            struct pt *p;
+            zarray_get_volatile(cluster, j, &p);
+            int x = p->x;
+            int y = p->y;
+        }
+        printf("new!");
+
+    }  
+}
+
 zarray_t *apriltag_quad_thresh(apriltag_detector_t *td, image_u8_t *im)
 {
     ////////////////////////////////////////////////////////
@@ -1837,7 +1851,10 @@ zarray_t *apriltag_quad_thresh(apriltag_detector_t *td, image_u8_t *im)
     timeprofile_stamp(td->tp, "unionfind");
 
     zarray_t* clusters = gradient_clusters(td, threshim, w, h, ts, uf);
-
+/*     if (td->mapx != NULL && td->mapy != NULL){
+        bilinear_inter(td, clusters, im);
+    }  */
+    
     if (td->debug) {
         image_u8x3_t *d = image_u8x3_create(w, h);
 

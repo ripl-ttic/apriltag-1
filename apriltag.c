@@ -988,6 +988,58 @@ int prefer_smaller(int pref, double q0, double q1)
     return 0;
 }
 
+void initrectifymap(apriltag_detector_t *td, image_u8_t *image){
+    ///////////////////////////////////////////////////////////
+    // Creates maps (mapx mapy) to rectify images, if image is not rectified
+    matd_t *map_1 = matd_create(image->height,image->width);
+    matd_t *map_2 = matd_create(image->height,image->width);
+    matd_t *iR = matd_inverse(matd_select(td->projection_matrix,0,2,0,2));
+
+    for( int i = 0; i < image->height; i = i+1){
+        double _x = i*MATD_EL(iR, 0, 1) + MATD_EL(iR, 0, 2);
+        double _y = i*MATD_EL(iR, 1, 1) + MATD_EL(iR, 1, 2);
+        double _w = i*MATD_EL(iR, 2, 1) + MATD_EL(iR, 2, 2);
+        for( int j = 0; j < image->width; j = j+1){
+            _x += MATD_EL(iR, 0, 0), _y += MATD_EL(iR, 1, 0), _w += MATD_EL(iR, 2, 0);
+            double w = 1.0/_w, x = _x*w, y = _y*w;
+            double x2 = x*x, y2 = y*y, r2 = x2 + y2, _2xy = 2*x*y;
+            double kr = (1 +((MATD_EL(td->dist_coef, 0, 4)*r2 + MATD_EL(td->dist_coef, 0, 1))*r2 + MATD_EL(td->dist_coef, 0, 0))*r2);
+            double xd = x*kr + MATD_EL(td->dist_coef, 0, 2)*_2xy + MATD_EL(td->dist_coef, 0, 3)*(r2 + 2*x2); 
+            double yd = y*kr + MATD_EL(td->dist_coef, 0, 2)*(r2 + 2*y2) + MATD_EL(td->dist_coef, 0, 3)*_2xy;
+            MATD_EL(map_1, i, j) = MATD_EL(td->cam_info, 0, 0) * xd + MATD_EL(td->cam_info, 0, 2);
+            MATD_EL(map_2, i, j) =MATD_EL(td->cam_info, 1, 1) * yd + MATD_EL(td->cam_info, 1, 2);
+        }
+    }
+    td->mapx = map_1;
+    td->mapy = map_2;
+}
+
+image_u8_t *bilinear_interpolation(apriltag_detector_t *td, image_u8_t *image){
+    image_u8_t *dst = image_u8_create(image->width, image->height);
+    for (int x = 0, y = 0; y < image->height; x++){
+        if (x > image->width){
+            x = 0; y ++;
+        }
+        int modXi = (int)(MATD_EL(td->mapx, y, x));
+        int modYi = (int)(MATD_EL(td->mapy, y, x));
+        double modXf = (MATD_EL(td->mapx, y, x)) - modXi;
+        double modYf = (MATD_EL(td->mapy, y, x)) - modYi;
+        int modXiPlusOneLim = imin(modXi+1,image->width-1);
+        int modYiPlusOneLim = imin(modYi+1,image->height-1);
+
+        int bl = image->buf[modYi*image->stride + modXi];
+        int br = image->buf[modYi*image->stride + modXiPlusOneLim];
+        int tl = image->buf[modYiPlusOneLim*image->stride + modXi];
+        int tr = image->buf[modYiPlusOneLim*image->stride + modXiPlusOneLim];
+
+        double b = modXf * br + (1. - modXf) * bl;
+        double t = modXf * tr + (1. - modXf) * tl;
+        double pxf = modYf * t + (1. - modYf) * b;
+        dst->buf[y*dst->stride + x] = (int)(pxf+0.5);
+    }
+    return dst;
+}
+
 zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
 {
     if (zarray_size(td->tag_families) == 0) {
@@ -1000,6 +1052,10 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
         workerpool_destroy(td->wp);
         td->wp = workerpool_create(td->nthreads);
     }
+    
+    if ((td->mapx == NULL || td->mapy == NULL) && td->dist_coef != NULL) {
+        initrectifymap(td, im_orig);
+    }
 
     if (td->debug)
         image_u8_write_pnm(im_orig, "debug_fig4.1_input.pnm");
@@ -1007,6 +1063,13 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
     timeprofile_clear(td->tp);
     timeprofile_stamp(td->tp, "init");
 
+    //////////////////RECTIFY IMAGE ///////////////////////////
+    if (td->mapx != NULL && td->mapy != NULL){
+        image_u8_t *im_rect = im_orig;
+        im_rect = bilinear_interpolation(td, im_orig);
+        im_orig = im_rect;
+        timeprofile_stamp(td->tp, "rectify");
+    } 
     ///////////////////////////////////////////////////////////
     // Step 1. Detect quads according to requested image decimation
     // and blurring parameters.
@@ -1016,7 +1079,6 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
 
         timeprofile_stamp(td->tp, "decimate");
     }
-
     if (td->quad_sigma != 0) {
         // compute a reasonable kernel width by figuring that the
         // kernel should go out 2 std devs.
@@ -1072,7 +1134,7 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
     // <== Steps fig. 4.3 -> 4.5 inside this
 
     // adjust centers of pixels so that they correspond to the
-    // original full-resolution image.
+    // original full-resolution image. QUAD_DECIMATE
     if (td->quad_decimate > 1) {
         for (int i = 0; i < zarray_size(quads); i++) {
             struct quad *q;

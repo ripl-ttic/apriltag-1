@@ -168,6 +168,15 @@ struct apriltag_detector
     struct apriltag_quad_thresh_params qtp;
 
     ///////////////////////////////////////////////////////////////
+    // Use for detection on unrectified images
+    matd_t* dist_coef; //distortion_coefficients
+    matd_t* projection_matrix; //projection_matrix
+    matd_t* cam_info; //camera_info_matrix
+
+    matd_t* mapx; //rectification mapping x
+    matd_t* mapy; //rectification mapping y
+
+    ///////////////////////////////////////////////////////////////
     // Statistics relating to last processed frame
     timeprofile_t *tp;
 
