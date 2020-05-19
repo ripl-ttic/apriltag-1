@@ -112,19 +112,19 @@ int main(int argc, char *argv[])
     td->refine_edges = getopt_get_bool(getopt, "refine-edges");
     // Fix the rotation of our homography to properly orient the tag
     matd_t *c = matd_create(3,3);
-    MATD_EL(c, 0, 0) = 307.7379294605756;
-    MATD_EL(c, 0, 2) = 329.692367951685;
-    MATD_EL(c, 1, 1) = 314.9827773443905;
-    MATD_EL(c, 1, 2) = 244.4605588877848;
+    MATD_EL(c, 0, 0) = 320.83628590652455;
+    MATD_EL(c, 0, 2) = 320.2332167518086;
+    MATD_EL(c, 1, 1) = 323.04325776720174;
+    MATD_EL(c, 1, 2) = 234.12811257055012;
     MATD_EL(c, 2, 2) = 1;
     td->cam_info = c;
     printf("Loaded cam_info");    
 
     matd_t *P = matd_create(3,4);
-    MATD_EL(P, 0, 0) = 210.1107940673828;
-    MATD_EL(P, 0, 2) = 327.2577820024981;
-    MATD_EL(P, 1, 1) = 253.8408660888672;
-    MATD_EL(P, 1, 2) = 239.9969353923052;
+    MATD_EL(P, 0, 0) = 211.56044006347656;
+    MATD_EL(P, 0, 2) = 318.87211753874;
+    MATD_EL(P, 1, 1) = 268.90362548828125;
+    MATD_EL(P, 1, 2) = 231.14138426406498;
     MATD_EL(P, 2, 2) = 1;
     td->projection_matrix = P;
 
@@ -164,10 +164,10 @@ int main(int argc, char *argv[])
             else if (str_ends_with(path, "jpg") || str_ends_with(path, "JPG")) {
                 if (str_ends_with(path, "raw.jpg")) {
                     matd_t *R = matd_create(1,5);
-                    MATD_EL(R, 0, 0) = -0.2565888993516047;
-                    MATD_EL(R, 0, 1) = 0.04481160508242147;
-                    MATD_EL(R, 0, 2) = -0.00505275149956019;
-                    MATD_EL(R, 0, 3) = 0.001308569367976665;
+                    MATD_EL(R, 0, 0) = -0.24241406656348882;
+                    MATD_EL(R, 0, 1) = 0.0402747578682183;
+                    MATD_EL(R, 0, 2) = -5.477653022258039e-06;
+                    MATD_EL(R, 0, 3) = -0.0005012637588869646;
                     MATD_EL(R, 0, 4) = 0;
                     td->dist_coef = R;
                     printf("Loaded dist_coef");
