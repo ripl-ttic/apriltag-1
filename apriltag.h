@@ -120,6 +120,17 @@ struct apriltag_quad_thresh_params
     int deglitch;
 };
 
+typedef struct apriltag_camera_info apriltag_camera_info_t;
+struct apriltag_camera_info
+{
+    // camera matrix K: [3,3]
+    float K[9];
+    // distortion coefficients D: [1, 8]
+    float D[8];
+    // distortion coefficients P: [3, 4]
+    float P[12];
+};
+
 // Represents a detector object. Upon creating a detector, all fields
 // are set to reasonable values, but can be overridden by accessing
 // these fields.
@@ -166,6 +177,9 @@ struct apriltag_detector
     int debug;
 
     struct apriltag_quad_thresh_params qtp;
+
+    // Contains camera information such as projection parameters and distortion coefficients
+    apriltag_camera_info_t *camera_info;
 
     ///////////////////////////////////////////////////////////////
     // Use for detection on unrectified images

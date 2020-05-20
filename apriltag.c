@@ -373,6 +373,7 @@ apriltag_detector_t *apriltag_detector_create()
     td->refine_edges = 1;
     td->decode_sharpening = 0.25;
 
+    td->camera_info = NULL;
 
     td->debug = 0;
 
@@ -986,6 +987,11 @@ int prefer_smaller(int pref, double q0, double q1)
 
     // no preference
     return 0;
+}
+
+void apriltag_detector_enable_rectification_step(apriltag_detector_t *td, apriltag_camera_info_t *cinfo)
+{
+    td->camera_info = cinfo;
 }
 
 void initrectifymap(apriltag_detector_t *td, image_u8_t *image){
