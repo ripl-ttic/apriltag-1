@@ -1062,6 +1062,7 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
     
     if ((td->mapx == NULL || td->mapy == NULL) && td->camera_info->D != NULL) {
         initrectifymap(td, im_orig);
+        printf("Rectification mapping for image set up");
     }
 
     if (td->debug)
