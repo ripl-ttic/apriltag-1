@@ -127,7 +127,7 @@ struct apriltag_camera_info
     float K[9];
     // distortion coefficients D: [1, 8]
     float D[8];
-    // distortion coefficients P: [3, 4]
+    // Projection matrix P: [3, 4]
     float P[12];
 };
 
@@ -183,9 +183,6 @@ struct apriltag_detector
 
     ///////////////////////////////////////////////////////////////
     // Use for detection on unrectified images
-    matd_t* dist_coef; //distortion_coefficients
-    matd_t* projection_matrix; //projection_matrix
-    matd_t* cam_info; //camera_info_matrix
 
     matd_t* mapx; //rectification mapping x
     matd_t* mapy; //rectification mapping y

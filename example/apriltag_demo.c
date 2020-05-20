@@ -111,22 +111,25 @@ int main(int argc, char *argv[])
     td->debug = getopt_get_bool(getopt, "debug");
     td->refine_edges = getopt_get_bool(getopt, "refine-edges");
     // Fix the rotation of our homography to properly orient the tag
-    matd_t *c = matd_create(3,3);
-    MATD_EL(c, 0, 0) = 320.83628590652455;
-    MATD_EL(c, 0, 2) = 320.2332167518086;
-    MATD_EL(c, 1, 1) = 323.04325776720174;
-    MATD_EL(c, 1, 2) = 234.12811257055012;
-    MATD_EL(c, 2, 2) = 1;
-    td->cam_info = c;
-    printf("Loaded cam_info");    
 
-    matd_t *P = matd_create(3,4);
-    MATD_EL(P, 0, 0) = 211.56044006347656;
-    MATD_EL(P, 0, 2) = 318.87211753874;
-    MATD_EL(P, 1, 1) = 268.90362548828125;
-    MATD_EL(P, 1, 2) = 231.14138426406498;
-    MATD_EL(P, 2, 2) = 1;
-    td->projection_matrix = P;
+    td->camera_info->K[0] = 320.83628590652455;
+    td->camera_info->K[2] = 320.2332167518086;
+    td->camera_info->K[4] = 323.04325776720174;
+    td->camera_info->K[5] = 234.12811257055012;
+    td->camera_info->K[8] = 1;
+
+    td->camera_info->P[0] = 211.56044006347656;
+    td->camera_info->P[2] = 318.87211753874;
+    td->camera_info->P[5] = 268.90362548828125;
+    td->camera_info->P[6] = 231.14138426406498;
+    td->camera_info->P[10] = 1;
+
+    td->camera_info->D[0] = -0.24241406656348882;
+    td->camera_info->D[1] = 0.0402747578682183;
+    td->camera_info->D[2] = -5.477653022258039e-06;
+    td->camera_info->D[3] = -0.0005012637588869646;
+    td->camera_info->D[4] = 0;
+
 
 
     int quiet = getopt_get_bool(getopt, "quiet");
@@ -163,14 +166,6 @@ int main(int argc, char *argv[])
                 im = image_u8_create_from_pnm(path);
             else if (str_ends_with(path, "jpg") || str_ends_with(path, "JPG")) {
                 if (str_ends_with(path, "raw.jpg")) {
-                    matd_t *R = matd_create(1,5);
-                    MATD_EL(R, 0, 0) = -0.24241406656348882;
-                    MATD_EL(R, 0, 1) = 0.0402747578682183;
-                    MATD_EL(R, 0, 2) = -5.477653022258039e-06;
-                    MATD_EL(R, 0, 3) = -0.0005012637588869646;
-                    MATD_EL(R, 0, 4) = 0;
-                    td->dist_coef = R;
-                    printf("Loaded dist_coef");
                 }
                 int err = 0;
                 pjpeg_t *pjpeg = pjpeg_create_from_file(path, 0, &err);

@@ -373,7 +373,7 @@ apriltag_detector_t *apriltag_detector_create()
     td->refine_edges = 1;
     td->decode_sharpening = 0.25;
 
-    td->camera_info = NULL;
+    td->camera_info = (apriltag_camera_info_t*) calloc(1, sizeof(apriltag_camera_info_t));
 
     td->debug = 0;
 
@@ -999,28 +999,29 @@ void initrectifymap(apriltag_detector_t *td, image_u8_t *image){
     // Creates maps (mapx mapy) to rectify images, if image is not rectified
     matd_t *map_1 = matd_create(image->height,image->width);
     matd_t *map_2 = matd_create(image->height,image->width);
-    matd_t *iR = matd_inverse(matd_select(td->projection_matrix,0,2,0,2));
+    matd_t *P = matd_create_dataf(3,4,td->camera_info->P);
+    matd_t *iR = matd_inverse(matd_select(P,0,2,0,2));
 
-    for( int i = 0; i < image->height; i = i+1){
+     for( int i = 0; i < image->height; i = i+1){
         double _x = i*MATD_EL(iR, 0, 1) + MATD_EL(iR, 0, 2);
         double _y = i*MATD_EL(iR, 1, 1) + MATD_EL(iR, 1, 2);
         double _w = i*MATD_EL(iR, 2, 1) + MATD_EL(iR, 2, 2);
-        for( int j = 0; j < image->width; j = j+1){
+         for( int j = 0; j < image->width; j = j+1){
             _x += MATD_EL(iR, 0, 0), _y += MATD_EL(iR, 1, 0), _w += MATD_EL(iR, 2, 0);
             double w = 1.0/_w, x = _x*w, y = _y*w;
             double x2 = x*x, y2 = y*y, r2 = x2 + y2, _2xy = 2*x*y;
-            double kr = (1 +((MATD_EL(td->dist_coef, 0, 4)*r2 + MATD_EL(td->dist_coef, 0, 1))*r2 + MATD_EL(td->dist_coef, 0, 0))*r2);
-            double xd = x*kr + MATD_EL(td->dist_coef, 0, 2)*_2xy + MATD_EL(td->dist_coef, 0, 3)*(r2 + 2*x2); 
-            double yd = y*kr + MATD_EL(td->dist_coef, 0, 2)*(r2 + 2*y2) + MATD_EL(td->dist_coef, 0, 3)*_2xy;
-            MATD_EL(map_1, i, j) = MATD_EL(td->cam_info, 0, 0) * xd + MATD_EL(td->cam_info, 0, 2);
-            MATD_EL(map_2, i, j) =MATD_EL(td->cam_info, 1, 1) * yd + MATD_EL(td->cam_info, 1, 2);
-        }
+            double kr = 1 +(((td->camera_info->D[4])*r2 + (td->camera_info->D[1]))*r2 + (td->camera_info->D[0]))*r2;
+            double xd = x*kr + (td->camera_info->D[2])*_2xy + (td->camera_info->D[3])*(r2 + 2*x2); 
+            double yd = y*kr + (td->camera_info->D[2])*(r2 + 2*y2) + (td->camera_info->D[3])*_2xy;
+            MATD_EL(map_1, i, j) = (td->camera_info->K[0]) * xd + (td->camera_info->K[2]);
+            MATD_EL(map_2, i, j) = (td->camera_info->K[4]) * yd + (td->camera_info->K[5]);
+        } 
     }
     td->mapx = map_1;
-    td->mapy = map_2;
+    td->mapy = map_2; 
 }
 
-image_u8_t *bilinear_interpolation(apriltag_detector_t *td, image_u8_t *image){
+image_u8_t *inverse_mapping(apriltag_detector_t *td, image_u8_t *image){
     image_u8_t *dst = image_u8_create(image->width, image->height);
     for (int x = 0, y = 0; y < image->height; x++){
         if (x > image->width){
@@ -1059,7 +1060,7 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
         td->wp = workerpool_create(td->nthreads);
     }
     
-    if ((td->mapx == NULL || td->mapy == NULL) && td->dist_coef != NULL) {
+    if ((td->mapx == NULL || td->mapy == NULL) && td->camera_info->D != NULL) {
         initrectifymap(td, im_orig);
     }
 
@@ -1072,7 +1073,7 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
     //////////////////RECTIFY IMAGE ///////////////////////////
     if (td->mapx != NULL && td->mapy != NULL){
         image_u8_t *im_rect = im_orig;
-        im_rect = bilinear_interpolation(td, im_orig);
+        im_rect = inverse_mapping(td, im_orig);
         im_orig = im_rect;
         timeprofile_stamp(td->tp, "rectify");
     } 
