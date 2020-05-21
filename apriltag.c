@@ -1045,6 +1045,22 @@ image_u8_t *inverse_mapping(apriltag_detector_t *td, image_u8_t *image){
         int modXiPlusOneLim = imin(modXi+1,image->width-1);
         int modYiPlusOneLim = imin(modYi+1,image->height-1);
 
+        // TODO: this is temporary
+        int sz = image->width * image->height;
+        int indices[] = {
+            modYi*image->stride + modXi,
+            modYi*image->stride + modXiPlusOneLim,
+            modYiPlusOneLim*image->stride + modXi,
+            modYiPlusOneLim*image->stride + modXiPlusOneLim
+        };
+        for (int i=0; i < 4; i++) {
+            if (indices[i] < 0 || indices[i] >= sz) {
+                printf("ERROR[1]: %d >= %d\n", indices[i], sz);
+            }
+        }
+        // TODO: this is temporary
+
+
         int bl = image->buf[modYi*image->stride + modXi];
         int br = image->buf[modYi*image->stride + modXiPlusOneLim];
         int tl = image->buf[modYiPlusOneLim*image->stride + modXi];
@@ -1053,6 +1069,13 @@ image_u8_t *inverse_mapping(apriltag_detector_t *td, image_u8_t *image){
         double b = modXf * br + (1. - modXf) * bl;
         double t = modXf * tr + (1. - modXf) * tl;
         double pxf = modYf * t + (1. - modYf) * b;
+
+        // TODO: this is temporary
+        if (y*dst->stride + x < 0 || y*dst->stride + x >= sz) {
+            printf("ERROR[2]: %d >= %d\n", (y*dst->stride + x), sz);
+        }
+        // TODO: this is temporary
+
         dst->buf[y*dst->stride + x] = (int)(pxf+0.5);
     }
     return dst;
