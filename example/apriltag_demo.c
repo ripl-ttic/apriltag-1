@@ -112,23 +112,23 @@ int main(int argc, char *argv[])
     td->refine_edges = getopt_get_bool(getopt, "refine-edges");
     // Fix the rotation of our homography to properly orient the tag
 
-    td->camera_info->K[0] = 320.83628590652455;
-    td->camera_info->K[2] = 320.2332167518086;
-    td->camera_info->K[4] = 323.04325776720174;
-    td->camera_info->K[5] = 234.12811257055012;
-    td->camera_info->K[8] = 1;
+    td->camera_info.K[0] = 320.83628590652455;
+    td->camera_info.K[2] = 320.2332167518086;
+    td->camera_info.K[4] = 323.04325776720174;
+    td->camera_info.K[5] = 234.12811257055012;
+    td->camera_info.K[8] = 1;
 
-    td->camera_info->P[0] = 211.56044006347656;
-    td->camera_info->P[2] = 318.87211753874;
-    td->camera_info->P[5] = 268.90362548828125;
-    td->camera_info->P[6] = 231.14138426406498;
-    td->camera_info->P[10] = 1;
+    td->camera_info.P[0] = 211.56044006347656;
+    td->camera_info.P[2] = 318.87211753874;
+    td->camera_info.P[5] = 268.90362548828125;
+    td->camera_info.P[6] = 231.14138426406498;
+    td->camera_info.P[10] = 1;
 
-    td->camera_info->D[0] = -0.24241406656348882;
-    td->camera_info->D[1] = 0.0402747578682183;
-    td->camera_info->D[2] = -5.477653022258039e-06;
-    td->camera_info->D[3] = -0.0005012637588869646;
-    td->camera_info->D[4] = 0;
+    td->camera_info.D[0] = -0.24241406656348882;
+    td->camera_info.D[1] = 0.0402747578682183;
+    td->camera_info.D[2] = -5.477653022258039e-06;
+    td->camera_info.D[3] = -0.0005012637588869646;
+    td->camera_info.D[4] = 0;
 
 
 

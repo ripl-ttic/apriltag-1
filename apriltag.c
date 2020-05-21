@@ -373,7 +373,7 @@ apriltag_detector_t *apriltag_detector_create()
     td->refine_edges = 1;
     td->decode_sharpening = 0.25;
 
-    td->camera_info = (apriltag_camera_info_t*) calloc(1, sizeof(apriltag_camera_info_t));
+    td->camera_info_is_given = false;
 
     td->debug = 0;
 
@@ -989,36 +989,42 @@ int prefer_smaller(int pref, double q0, double q1)
     return 0;
 }
 
-void apriltag_detector_enable_rectification_step(apriltag_detector_t *td, apriltag_camera_info_t *cinfo)
+void apriltag_detector_enable_rectification_step(apriltag_detector_t *td, apriltag_camera_info_t cinfo)
 {
     td->camera_info = cinfo;
+    td->camera_info_is_given = true;
 }
 
 void initrectifymap(apriltag_detector_t *td, image_u8_t *image){
     ///////////////////////////////////////////////////////////
     // Creates maps (mapx mapy) to rectify images, if image is not rectified
-    matd_t *map_1 = matd_create(image->height,image->width);
-    matd_t *map_2 = matd_create(image->height,image->width);
-    matd_t *P = matd_create_dataf(3,4,td->camera_info->P);
-    matd_t *iR = matd_inverse(matd_select(P,0,2,0,2));
+    matd_t *map_1 = matd_create(image->height, image->width);
+    matd_t *map_2 = matd_create(image->height, image->width);
+    matd_t *P = matd_create_dataf(3, 4, td->camera_info.P);
+    matd_t *iR = matd_inverse(matd_select(P, 0, 2, 0, 2));
 
-     for( int i = 0; i < image->height; i = i+1){
-        double _x = i*MATD_EL(iR, 0, 1) + MATD_EL(iR, 0, 2);
-        double _y = i*MATD_EL(iR, 1, 1) + MATD_EL(iR, 1, 2);
-        double _w = i*MATD_EL(iR, 2, 1) + MATD_EL(iR, 2, 2);
-         for( int j = 0; j < image->width; j = j+1){
-            _x += MATD_EL(iR, 0, 0), _y += MATD_EL(iR, 1, 0), _w += MATD_EL(iR, 2, 0);
-            double w = 1.0/_w, x = _x*w, y = _y*w;
-            double x2 = x*x, y2 = y*y, r2 = x2 + y2, _2xy = 2*x*y;
-            double kr = 1 +(((td->camera_info->D[4])*r2 + (td->camera_info->D[1]))*r2 + (td->camera_info->D[0]))*r2;
-            double xd = x*kr + (td->camera_info->D[2])*_2xy + (td->camera_info->D[3])*(r2 + 2*x2); 
-            double yd = y*kr + (td->camera_info->D[2])*(r2 + 2*y2) + (td->camera_info->D[3])*_2xy;
-            MATD_EL(map_1, i, j) = (td->camera_info->K[0]) * xd + (td->camera_info->K[2]);
-            MATD_EL(map_2, i, j) = (td->camera_info->K[4]) * yd + (td->camera_info->K[5]);
-        } 
+    for( int i = 0; i < image->height; i = i+1){
+        double _x = i * MATD_EL(iR, 0, 1) + MATD_EL(iR, 0, 2);
+        double _y = i * MATD_EL(iR, 1, 1) + MATD_EL(iR, 1, 2);
+        double _w = i * MATD_EL(iR, 2, 1) + MATD_EL(iR, 2, 2);
+        for( int j = 0; j < image->width; j = j+1){
+            _x += MATD_EL(iR, 0, 0);
+            _y += MATD_EL(iR, 1, 0);
+            _w += MATD_EL(iR, 2, 0);
+            double w = 1.0/_w, x = _x * w, y = _y * w;
+            double x2 = x * x, y2 = y * y, r2 = x2 + y2, _2xy = 2 * x * y;
+            double kr = 1 +(((td->camera_info.D[4])*r2 + (td->camera_info.D[1]))*r2 + (td->camera_info.D[0]))*r2;
+            double xd = x*kr + (td->camera_info.D[2])*_2xy + (td->camera_info.D[3])*(r2 + 2*x2);
+            double yd = y*kr + (td->camera_info.D[2])*(r2 + 2*y2) + (td->camera_info.D[3])*_2xy;
+            MATD_EL(map_1, i, j) = (td->camera_info.K[0]) * xd + (td->camera_info.K[2]);
+            MATD_EL(map_2, i, j) = (td->camera_info.K[4]) * yd + (td->camera_info.K[5]);
+        }
     }
     td->mapx = map_1;
-    td->mapy = map_2; 
+    td->mapy = map_2;
+    // clean up
+    matd_destroy(P);
+    matd_destroy(iR);
 }
 
 image_u8_t *inverse_mapping(apriltag_detector_t *td, image_u8_t *image){
@@ -1060,9 +1066,9 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
         td->wp = workerpool_create(td->nthreads);
     }
     
-    if ((td->mapx == NULL || td->mapy == NULL) && td->camera_info->D != NULL) {
+    if ((td->mapx == NULL || td->mapy == NULL) && td->camera_info_is_given) {
         initrectifymap(td, im_orig);
-        printf("Rectification mapping for image set up");
+        printf("Rectification mapping for image set up\n");
     }
 
     if (td->debug)

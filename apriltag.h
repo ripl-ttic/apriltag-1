@@ -179,7 +179,8 @@ struct apriltag_detector
     struct apriltag_quad_thresh_params qtp;
 
     // Contains camera information such as projection parameters and distortion coefficients
-    apriltag_camera_info_t *camera_info;
+    apriltag_camera_info_t camera_info;
+    bool camera_info_is_given;
 
     ///////////////////////////////////////////////////////////////
     // Use for detection on unrectified images
