@@ -1029,6 +1029,11 @@ void initrectifymap(apriltag_detector_t *td, image_u8_t *image){
 
 image_u8_t *inverse_mapping(apriltag_detector_t *td, image_u8_t *image){
     image_u8_t *dst = image_u8_create(image->width, image->height);
+    // paint it black!
+    for (int i=0; i < image->width * image->height; i++) {
+        dst->buf[i] = 0;
+    }
+    // rectify
     for (int x = 0, y = 0; y < image->height; x++){
         if (x > image->width){
             x = 0; y ++;
@@ -1065,10 +1070,11 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
         workerpool_destroy(td->wp);
         td->wp = workerpool_create(td->nthreads);
     }
-    
+
     if ((td->mapx == NULL || td->mapy == NULL) && td->camera_info_is_given) {
+        printf("Initializing rectification map...\n");
         initrectifymap(td, im_orig);
-        printf("Rectification mapping for image set up\n");
+        printf("Rectification maps computed!\n");
     }
 
     if (td->debug)
@@ -1079,11 +1085,10 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
 
     //////////////////RECTIFY IMAGE ///////////////////////////
     if (td->mapx != NULL && td->mapy != NULL){
-        image_u8_t *im_rect = im_orig;
-        im_rect = inverse_mapping(td, im_orig);
+        image_u8_t *im_rect = inverse_mapping(td, im_orig);
         im_orig = im_rect;
         timeprofile_stamp(td->tp, "rectify");
-    } 
+    }
     ///////////////////////////////////////////////////////////
     // Step 1. Detect quads according to requested image decimation
     // and blurring parameters.
@@ -1472,6 +1477,10 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im_orig)
 
     zarray_sort(detections, detection_compare_function);
     timeprofile_stamp(td->tp, "cleanup");
+
+    if (td->mapx != NULL && td->mapy != NULL){
+        image_u8_destroy(im_orig);
+    }
 
     return detections;
 }
