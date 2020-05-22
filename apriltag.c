@@ -1037,9 +1037,6 @@ void apriltag_detector_enable_rectification_step(apriltag_detector_t *td, aprilt
 
 image_u8_t *image_u8_rectify(apriltag_detector_t *td, image_u8_t *image, float decimate){
     image_u8_t *dst = image_u8_create(image->width, image->height);
-
-    printf("Rectifying an image of size %d x %d with decimate of %.2f", image->width, image->height, decimate);
-
     // rectify
     for (int y = 0; y < image->height; y++) {
         for (int x = 0; x < image->width; x++) {
