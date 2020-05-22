@@ -1079,7 +1079,7 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im)
     //////////////////RECTIFY IMAGE ///////////////////////////
 
     bool do_rectify = td->mapx != NULL && td->mapy != NULL;
-    int rectify_before_step = 3;
+    int rectify_before_step = 2;
 
     image_u8_t *im_orig = im;
     if (do_rectify && rectify_before_step == 2){
