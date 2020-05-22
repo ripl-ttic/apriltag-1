@@ -634,10 +634,19 @@ float quad_decode(apriltag_detector_t* td, apriltag_family_t *family, image_u8_t
             if (ix < 0 || iy < 0 || ix >= im->width || iy >= im->height)
                 continue;
 
-            int v = im->buf[iy*im->stride + ix];
+            if (1) {
+                // apply distortion to the points
+                // TODO: check if the map is filled first
+                int _u = MATD_EL(td->mapx, iy, ix);
+                int _v = MATD_EL(td->mapy, iy, ix);
+                ix = _u;
+                iy = _v;
+            }
+
+            int v = im->buf[iy * im->stride + ix];
 
             if (im_samples) {
-                im_samples->buf[iy*im_samples->stride + ix] = (1-is_white)*255;
+                im_samples->buf[iy * im_samples->stride + ix] = (1-is_white)*255;
             }
 
             if (is_white)
@@ -687,6 +696,15 @@ float quad_decode(apriltag_detector_t* td, apriltag_family_t *family, image_u8_t
 
         double px, py;
         homography_project(quad->H, tagx, tagy, &px, &py);
+
+        if (0) {
+            // apply distortion to the points
+            // TODO: check if the map is filled first
+            double _u = MATD_EL(td->mapx, (int) py, (int) px);
+            double _v = MATD_EL(td->mapy, (int) py, (int) px);
+            px = _u;
+            py = _v;
+        }
 
         double v = value_for_pixel(im, px, py);
 
@@ -889,6 +907,7 @@ static void quad_decode_task(void *_u)
         // refine edges is not dependent upon the tag family, thus
         // apply this optimization BEFORE the other work.
         //if (td->quad_decimate > 1 && td->refine_edges) {
+        //TODO(afdaniele): here is where the image is used to refine the edges
         if (td->refine_edges) {
             refine_edges(td, im, quad_original);
         }
@@ -990,10 +1009,13 @@ int prefer_smaller(int pref, double q0, double q1)
 void init_rectification_maps(apriltag_detector_t *td, apriltag_camera_info_t cinfo){
     ///////////////////////////////////////////////////////////
     // Creates maps (mapx mapy) to rectify images, if image is not rectified
-    matd_t *map_x = matd_create(cinfo.height, cinfo.width);
-    matd_t *map_y = matd_create(cinfo.height, cinfo.width);
     matd_t *P = matd_create_dataf(3, 4, cinfo.P);
     matd_t *iR = matd_inverse(matd_select(P, 0, 2, 0, 2));
+
+    td->mapx = matd_create(cinfo.height, cinfo.width);
+    td->mapy = matd_create(cinfo.height, cinfo.width);
+    td->mapx_inv = matd_create(cinfo.height, cinfo.width);
+    td->mapy_inv = matd_create(cinfo.height, cinfo.width);
 
     for( int i = 0; i < cinfo.height; i = i+1){
         double _x = i * MATD_EL(iR, 0, 1) + MATD_EL(iR, 0, 2);
@@ -1017,12 +1039,13 @@ void init_rectification_maps(apriltag_detector_t *td, apriltag_camera_info_t cin
             if (_v < 0 || _v >= cinfo.height)
                 continue;
 
-            MATD_EL(map_x, i, j) = _u;
-            MATD_EL(map_y, i, j) = _v;
+            MATD_EL(td->mapx, i, j) = _u;
+            MATD_EL(td->mapy, i, j) = _v;
+
+            MATD_EL(td->mapx_inv, (int) floor(_v), (int) floor(_u)) = j;
+            MATD_EL(td->mapy_inv, (int) floor(_v), (int) floor(_u)) = i;
         }
     }
-    td->mapx = map_x;
-    td->mapy = map_y;
     // clean up
     matd_destroy(P);
     matd_destroy(iR);
@@ -1079,10 +1102,10 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im)
     timeprofile_clear(td->tp);
     timeprofile_stamp(td->tp, "init");
 
-    //////////////////RECTIFY IMAGE ///////////////////////////
+    ////////////////// RECTIFY //////////////////////////
 
     bool do_rectify = td->mapx != NULL && td->mapy != NULL;
-    int rectify_before_step = 3;
+    int rectify_before_step = 5;
 
     image_u8_t *im_orig = im;
     if (do_rectify && rectify_before_step == 2){
@@ -1090,7 +1113,7 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im)
         timeprofile_stamp(td->tp, "rectify");
     }
 
-    ///////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////
 
 
     // Step 1. Detect quads according to requested image decimation

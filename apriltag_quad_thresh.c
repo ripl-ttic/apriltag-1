@@ -608,6 +608,7 @@ struct line_fit_pt* compute_lfps(int sz, zarray_t* cluster, image_u8_t* im) {
             int ix = x, iy = y;
             double W = 1;
 
+            //TODO(afdaniele): the image is used here to compute the gradient
             if (ix > 0 && ix+1 < im->width && iy > 0 && iy+1 < im->height) {
                 int grad_x = im->buf[iy * im->stride + ix + 1] -
                     im->buf[iy * im->stride + ix - 1];
@@ -1524,6 +1525,7 @@ zarray_t* do_gradient_clusters(image_u8_t* threshim, int ts, int y0, int y1, int
 
 #define DO_CONN(dx, dy)                                                 \
             if (1) {                                                    \
+                /*TODO(afdaniele): image is used here. this is where the gradient is computed */ \
                 uint8_t v1 = threshim->buf[(y + dy)*ts + x + dx];       \
                                                                         \
                 if (v0 + v1 == 255) {                                   \
@@ -1777,6 +1779,16 @@ zarray_t* fit_quads(apriltag_detector_t *td, int w, int h, zarray_t* clusters, i
     return quads;
 }
 
+
+void pt_rectify(apriltag_detector_t *td, struct pt *p){
+    int sx = (int) (p->x / 2.0);
+    int sy = (int) (p->y / 2.0);
+
+    p->x = (uint16_t) (2 * MATD_EL(td->mapx_inv, sy, sx));
+    p->y = (uint16_t) (2 * MATD_EL(td->mapy_inv, sy, sx));
+}
+
+
 zarray_t *apriltag_quad_thresh(apriltag_detector_t *td, image_u8_t *im)
 {
     ////////////////////////////////////////////////////////
@@ -1837,6 +1849,22 @@ zarray_t *apriltag_quad_thresh(apriltag_detector_t *td, image_u8_t *im)
     timeprofile_stamp(td->tp, "unionfind");
 
     zarray_t* clusters = gradient_clusters(td, threshim, w, h, ts, uf);
+
+    if (1) {
+        // rectify points
+        for (int i = 0; i < zarray_size(clusters); i++) {
+            zarray_t *cluster;
+            zarray_get(clusters, i, &cluster);
+            for (int j = 0; j < zarray_size(cluster); j++) {
+                struct pt *p;
+                zarray_get_volatile(cluster, j, &p);
+                pt_rectify(td, p);
+            }
+        }
+    }
+
+    timeprofile_stamp(td->tp, "rectify");
+
 
     if (td->debug) {
         image_u8x3_t *d = image_u8x3_create(w, h);

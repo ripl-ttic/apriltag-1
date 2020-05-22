@@ -185,8 +185,11 @@ struct apriltag_detector
     ///////////////////////////////////////////////////////////////
     // Use for detection on unrectified images
 
-    matd_t* mapx; //rectification mapping x
-    matd_t* mapy; //rectification mapping y
+    matd_t* mapx; //rectification mapping x (rect to raw)
+    matd_t* mapy; //rectification mapping y (rect to raw)
+
+    matd_t* mapx_inv; //rectification mapping x (raw to rect)
+    matd_t* mapy_inv; //rectification mapping y (raw to rect)
 
     ///////////////////////////////////////////////////////////////
     // Statistics relating to last processed frame
