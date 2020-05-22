@@ -1035,17 +1035,26 @@ void apriltag_detector_enable_rectification_step(apriltag_detector_t *td, aprilt
     printf("Rectification maps computed!\n");
 }
 
-image_u8_t *image_u8_rectify(apriltag_detector_t *td, image_u8_t *image){
+image_u8_t *image_u8_rectify(apriltag_detector_t *td, image_u8_t *image, float decimate){
     image_u8_t *dst = image_u8_create(image->width, image->height);
+
+    printf("Rectifying an image of size %d x %d with decimate of %.2f", image->width, image->height, decimate);
+
     // rectify
     for (int y = 0; y < image->height; y++) {
         for (int x = 0; x < image->width; x++) {
             int i = y * dst->stride + x;
 
-            int _x = (int) (MATD_EL(td->mapx, y, x));
-            int _y = (int) (MATD_EL(td->mapy, y, x));
+            int sx = (int) floor(x * decimate);
+            int sy = (int) floor(y * decimate);
 
-            dst->buf[i] = image->buf[_y * dst->stride + _x];
+            int _x = (int) (MATD_EL(td->mapx, sy, sx));
+            int _y = (int) (MATD_EL(td->mapy, sy, sx));
+
+            int _sx = (int) floor(_x / decimate);
+            int _sy = (int) floor(_y / decimate);
+
+            dst->buf[i] = image->buf[_sy * dst->stride + _sx];
         }
     }
     return dst;
@@ -1072,11 +1081,12 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im)
 
     //////////////////RECTIFY IMAGE ///////////////////////////
 
-    bool do_rectify = true;
+    bool do_rectify = td->mapx != NULL && td->mapy != NULL;
+    int rectify_before_step = 3;
 
     image_u8_t *im_orig = im;
-    if (do_rectify && td->mapx != NULL && td->mapy != NULL){
-        im_orig = image_u8_rectify(td, im);
+    if (do_rectify && rectify_before_step == 2){
+        im_orig = image_u8_rectify(td, im, 1.0);
         timeprofile_stamp(td->tp, "rectify");
     }
 
@@ -1091,6 +1101,15 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im)
 
         timeprofile_stamp(td->tp, "decimate");
     }
+
+
+    if (do_rectify && rectify_before_step == 3){
+        //TODO: memory leak here
+        quad_im = image_u8_rectify(td, quad_im, td->quad_decimate);
+        timeprofile_stamp(td->tp, "rectify");
+    }
+
+
     if (td->quad_sigma != 0) {
         // compute a reasonable kernel width by figuring that the
         // kernel should go out 2 std devs.
