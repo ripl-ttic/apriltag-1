@@ -634,9 +634,8 @@ float quad_decode(apriltag_detector_t* td, apriltag_family_t *family, image_u8_t
             if (ix < 0 || iy < 0 || ix >= im->width || iy >= im->height)
                 continue;
 
-            if (1) {
+            if (td->mapx != NULL && td->mapy != NULL) {
                 // apply distortion to the points
-                // TODO: check if the map is filled first
                 int _u = MATD_EL(td->mapx, iy, ix);
                 int _v = MATD_EL(td->mapy, iy, ix);
                 ix = _u;
@@ -697,9 +696,11 @@ float quad_decode(apriltag_detector_t* td, apriltag_family_t *family, image_u8_t
         double px, py;
         homography_project(quad->H, tagx, tagy, &px, &py);
 
-        if (0) {
+        if (td->mapx != NULL && td->mapy != NULL) {
+            // ignore points that are outside the image
+            if (px < 0 || py < 0 || px >= im->width || py >= im->height)
+                continue;
             // apply distortion to the points
-            // TODO: check if the map is filled first
             double _u = MATD_EL(td->mapx, (int) py, (int) px);
             double _v = MATD_EL(td->mapy, (int) py, (int) px);
             px = _u;
