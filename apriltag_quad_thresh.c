@@ -1780,12 +1780,15 @@ zarray_t* fit_quads(apriltag_detector_t *td, int w, int h, zarray_t* clusters, i
 }
 
 
-void pt_rectify(apriltag_detector_t *td, struct pt *p){
-    int sx = (int) (p->x / 2.0);
-    int sy = (int) (p->y / 2.0);
+void pt_rectify(apriltag_detector_t *td, struct pt *p, image_u8_t *im){
+    int sx = (int) (p->x / 2.0) * td->quad_decimate;
+    int sy = (int) (p->y / 2.0) * td->quad_decimate;
 
-    p->x = (uint16_t) (2 * MATD_EL(td->mapx_inv, sy, sx));
-    p->y = (uint16_t) (2 * MATD_EL(td->mapy_inv, sy, sx));
+    int ssx = (uint16_t) (2 * MATD_EL(td->mapx_inv, sy, sx));
+    int ssy = (uint16_t) (2 * MATD_EL(td->mapy_inv, sy, sx));
+
+    p->x = ssx/td->quad_decimate;
+    p->y = ssy/td->quad_decimate;
 }
 
 
@@ -1858,7 +1861,7 @@ zarray_t *apriltag_quad_thresh(apriltag_detector_t *td, image_u8_t *im)
             for (int j = 0; j < zarray_size(cluster); j++) {
                 struct pt *p;
                 zarray_get_volatile(cluster, j, &p);
-                pt_rectify(td, p);
+                pt_rectify(td, p, im);
             }
         }
     }
