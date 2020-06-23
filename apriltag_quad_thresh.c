@@ -1780,15 +1780,21 @@ zarray_t* fit_quads(apriltag_detector_t *td, int w, int h, zarray_t* clusters, i
 }
 
 
-void pt_rectify(apriltag_detector_t *td, struct pt *p, image_u8_t *im){
+bool pt_rectify(apriltag_detector_t *td, struct pt *p, image_u8_t *im){
+    bool remove_index = false;
     int sx = (int) (p->x / 2.0) * td->quad_decimate;
     int sy = (int) (p->y / 2.0) * td->quad_decimate;
 
-    int ssx = (uint16_t) (2 * MATD_EL(td->mapx_inv, sy, sx));
-    int ssy = (uint16_t) (2 * MATD_EL(td->mapy_inv, sy, sx));
+    int ssx = (uint16_t) (2 * MATD_EL(td->mapx_inv, sy, sx))/td->quad_decimate;
+    int ssy = (uint16_t) (2 * MATD_EL(td->mapy_inv, sy, sx))/td->quad_decimate;
 
-    p->x = ssx/td->quad_decimate;
-    p->y = ssy/td->quad_decimate;
+    if (ssx == 0 && ssy == 0)
+        remove_index = true;  
+
+    p->x = ssx;
+    p->y = ssy;
+
+    return remove_index;
 }
 
 
@@ -1853,7 +1859,7 @@ zarray_t *apriltag_quad_thresh(apriltag_detector_t *td, image_u8_t *im)
 
     zarray_t* clusters = gradient_clusters(td, threshim, w, h, ts, uf);
 
-    if (1) {
+    if (td->mapx != NULL && td->mapy != NULL) {
         // rectify points
         for (int i = 0; i < zarray_size(clusters); i++) {
             zarray_t *cluster;
@@ -1861,7 +1867,14 @@ zarray_t *apriltag_quad_thresh(apriltag_detector_t *td, image_u8_t *im)
             for (int j = 0; j < zarray_size(cluster); j++) {
                 struct pt *p;
                 zarray_get_volatile(cluster, j, &p);
-                pt_rectify(td, p, im);
+                bool remove_index = pt_rectify(td, p, im);
+
+                if (remove_index == true) {
+                    zarray_remove_index(cluster, j, false);
+                    j = j-1 ;  
+                } 
+                
+                
             }
         }
     }
