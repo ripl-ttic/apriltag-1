@@ -1781,7 +1781,6 @@ zarray_t* fit_quads(apriltag_detector_t *td, int w, int h, zarray_t* clusters, i
 
 
 bool pt_rectify(apriltag_detector_t *td, struct pt *p, image_u8_t *im){
-    bool remove_index = false;
     int sx = (int) (p->x / 2.0) * td->quad_decimate;
     int sy = (int) (p->y / 2.0) * td->quad_decimate;
 
@@ -1789,12 +1788,12 @@ bool pt_rectify(apriltag_detector_t *td, struct pt *p, image_u8_t *im){
     int ssy = (uint16_t) (2 * MATD_EL(td->mapy_inv, sy, sx))/td->quad_decimate;
 
     if (ssx == 0 && ssy == 0)
-        remove_index = true;  
+        return true;  
 
     p->x = ssx;
     p->y = ssy;
 
-    return remove_index;
+    return false;
 }
 
 

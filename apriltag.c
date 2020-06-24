@@ -1059,31 +1059,6 @@ void apriltag_detector_enable_rectification_step(apriltag_detector_t *td, aprilt
     printf("Rectification maps computed!\n");
 }
 
-image_u8_t *image_u8_rectify(apriltag_detector_t *td, image_u8_t *image, float decimate){
-    image_u8_t *dst = image_u8_create(image->width, image->height);
-
-    printf("Rectifying an image of size %d x %d with decimate of %.2f", image->width, image->height, decimate);
-
-    // rectify
-    for (int y = 0; y < image->height; y++) {
-        for (int x = 0; x < image->width; x++) {
-            int i = y * dst->stride + x;
-
-            int sx = (int) (x * decimate);
-            int sy = (int) (y * decimate);
-
-            int _x = (int) (MATD_EL(td->mapx, sy, sx));
-            int _y = (int) (MATD_EL(td->mapy, sy, sx));
-
-            int _sx = (int) (_x / decimate);
-            int _sy = (int) (_y / decimate);
-
-            dst->buf[i] = image->buf[_sy * dst->stride + _sx];
-        }
-    }
-    return dst;
-}
-
 zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im)
 {
     if (zarray_size(td->tag_families) == 0) {
@@ -1103,19 +1078,7 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im)
     timeprofile_clear(td->tp);
     timeprofile_stamp(td->tp, "init");
 
-    ////////////////// RECTIFY //////////////////////////
-
-    bool do_rectify = td->mapx != NULL && td->mapy != NULL;
-    int rectify_before_step = 5;
-
     image_u8_t *im_orig = im;
-    if (do_rectify && rectify_before_step == 2){
-        im_orig = image_u8_rectify(td, im, 1.0);
-        timeprofile_stamp(td->tp, "rectify");
-    }
-
-    /////////////////////////////////////////////////////
-
 
     // Step 1. Detect quads according to requested image decimation
     // and blurring parameters.
@@ -1175,16 +1138,6 @@ zarray_t *apriltag_detector_detect(apriltag_detector_t *td, image_u8_t *im)
 
     if (td->debug)
         image_u8_write_pnm(quad_im, "debug_fig4.2_preprocess.pnm");
-
-
-    ////////////////// RECTIFY //////////////////////////
-    if (do_rectify && rectify_before_step == 3){
-        //TODO: memory leak here
-        quad_im = image_u8_rectify(td, quad_im, td->quad_decimate);
-        timeprofile_stamp(td->tp, "rectify");
-    }
-    /////////////////////////////////////////////////////
-
 
     // ==> Steps fig. 4.3 -> 4.5 inside this
     zarray_t *quads = apriltag_quad_thresh(td, quad_im);
