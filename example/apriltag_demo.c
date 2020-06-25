@@ -72,6 +72,22 @@ int main(int argc, char *argv[])
     getopt_add_double(getopt, 'b', "blur", "0.0", "Apply low-pass blur to input; negative sharpens");
     getopt_add_bool(getopt, '0', "refine-edges", 1, "Spend more time trying to align edges of tags");
 
+    //add cam params
+    getopt_add_int(getopt, 'w', "width", "640", "The image width");
+    getopt_add_int(getopt, 'l', "height", "480", "The image height");
+
+    getopt_add_double(getopt, 'm', "fx", "320.83628590652455", "The image fx");
+    getopt_add_double(getopt, 'n', "fy", "323.04325776720174", "The image fy");
+    getopt_add_double(getopt, 'v', "cx", "320.2332167518086", "The image cx");
+    getopt_add_double(getopt, 'c', "cy", "234.12811257055012", "The image cy");
+
+    getopt_add_double(getopt, '1', "k1", "-0.24241406656348882", "The image k1");
+    getopt_add_double(getopt, '2', "k2", "0.0402747578682183", "The image k2");
+    getopt_add_double(getopt, '3', "p1", "-5.477653022258039e-06", "The image p1");
+    getopt_add_double(getopt, '4', "p2", "-0.0005012637588869646", "The image p2");
+    getopt_add_double(getopt, '5', "k3", "0.0", "The image k3");
+
+
     if (!getopt_parse(getopt, argc, argv, 1) || getopt_get_bool(getopt, "help")) {
         printf("Usage: %s [options] <input files>\n", argv[0]);
         getopt_do_usage(getopt);
@@ -112,13 +128,27 @@ int main(int argc, char *argv[])
     td->refine_edges = getopt_get_bool(getopt, "refine-edges");
     // Fix the rotation of our homography to properly orient the tag
 
+    //cam param for rectification
+    int imgwidth = getopt_get_int(getopt, "width");
+    int imgheight = getopt_get_int(getopt, "height");
+
+    double fx = getopt_get_double(getopt, "fx");
+    double fy = getopt_get_double(getopt, "fy");
+    double cx = getopt_get_double(getopt, "cx");
+    double cy = getopt_get_double(getopt, "cy");
+
+    double k1 = getopt_get_double(getopt, "k1");
+    double k2 = getopt_get_double(getopt, "k2");
+    double p1 = getopt_get_double(getopt, "p1");
+    double p2 = getopt_get_double(getopt, "p2");
+    double k3 = getopt_get_double(getopt, "k3");
 
     apriltag_camera_info_t cinfo = {
-        .width = 640,
-        .height = 480,
+        .width = imgwidth,
+        .height = imgheight,
         .K = {
-            320.83628590652455, 0.0, 320.2332167518086,
-            0.0, 323.04325776720174, 234.12811257055012,
+            fx, 0.0, cx,
+            0.0, fy, cy,
             0.0, 0.0, 1.0
         },
         .P = {
@@ -127,9 +157,9 @@ int main(int argc, char *argv[])
             0.0, 0.0, 1.0, 0.0
         },
         .D = {
-            -0.24241406656348882, 0.0402747578682183,
-            -5.477653022258039e-06, -0.0005012637588869646,
-            0.0
+            k1, k2,
+            p1, p2,
+            k3
         }
     };
 
