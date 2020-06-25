@@ -132,7 +132,6 @@ int main(int argc, char *argv[])
             0.0
         }
     };
-    init_rectification_maps(td, cinfo);
 
 
     int quiet = getopt_get_bool(getopt, "quiet");
@@ -169,6 +168,7 @@ int main(int argc, char *argv[])
                 im = image_u8_create_from_pnm(path);
             else if (str_ends_with(path, "jpg") || str_ends_with(path, "JPG")) {
                 if (str_ends_with(path, "raw.jpg")) {
+                    init_rectification_maps(td, cinfo);
                 }
                 int err = 0;
                 pjpeg_t *pjpeg = pjpeg_create_from_file(path, 0, &err);
