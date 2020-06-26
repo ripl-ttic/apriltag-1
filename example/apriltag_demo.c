@@ -278,6 +278,7 @@ int main(int argc, char *argv[])
 
                 hamm_hist[det->hamming]++;
                 total_hamm_hist[det->hamming]++;
+                printf("centerpose: %f,%f \n",det->c[0],det->c[1]);
             }
 
             apriltag_detections_destroy(detections);
