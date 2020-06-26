@@ -87,6 +87,16 @@ int main(int argc, char *argv[])
     getopt_add_double(getopt, '4', "p2", "-0.0005012637588869646", "The image p2");
     getopt_add_double(getopt, '5', "k3", "0.0", "The image k3");
 
+    getopt_add_double(getopt, 'r', "p11", "211.56044006347656", "The image p11");
+    getopt_add_double(getopt, '9', "p12", "0.0", "The image p12");
+    getopt_add_double(getopt, ',', "p13", "318.87211753874", "The image p13");
+    getopt_add_double(getopt, '|', "p21", "0.0", "The image p21");
+    getopt_add_double(getopt, 'u', "p22", "268.90362548828125", "The image p22");
+    getopt_add_double(getopt, 'e', "p23", "231.14138426406498", "The image p23");
+    getopt_add_double(getopt, 'g', "p31", "0.0", "The image p31");
+    getopt_add_double(getopt, 'p', "p32", "0.0", "The image p32");
+    getopt_add_double(getopt, 'z', "p33", "1.0", "The image p33");
+
 
     if (!getopt_parse(getopt, argc, argv, 1) || getopt_get_bool(getopt, "help")) {
         printf("Usage: %s [options] <input files>\n", argv[0]);
@@ -143,6 +153,16 @@ int main(int argc, char *argv[])
     double p2 = getopt_get_double(getopt, "p2");
     double k3 = getopt_get_double(getopt, "k3");
 
+    double p11 = getopt_get_double(getopt, "p11");
+    double p12 = getopt_get_double(getopt, "p12");
+    double p13 = getopt_get_double(getopt, "p13");
+    double p21 = getopt_get_double(getopt, "p21");
+    double p22 = getopt_get_double(getopt, "p22");
+    double p23 = getopt_get_double(getopt, "p23");
+    double p31 = getopt_get_double(getopt, "p31");
+    double p32 = getopt_get_double(getopt, "p32");
+    double p33 = getopt_get_double(getopt, "p33");
+
     apriltag_camera_info_t cinfo = {
         .width = imgwidth,
         .height = imgheight,
@@ -152,9 +172,9 @@ int main(int argc, char *argv[])
             0.0, 0.0, 1.0
         },
         .P = {
-            211.56044006347656, 0.0, 318.87211753874, 0.0,
-            0.0, 268.90362548828125, 231.14138426406498, 0.0,
-            0.0, 0.0, 1.0, 0.0
+            p11, p12, p13, 0.0,
+            p21, p22, p23, 0.0,
+            p31, p32, p33, 0.0
         },
         .D = {
             k1, k2,
