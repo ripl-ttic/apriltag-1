@@ -88,6 +88,15 @@ static inline void timeprofile_display(timeprofile_t *tp)
 {
     int64_t lastutime = tp->utime;
 
+    struct timeprofile_entry *stamp;
+    zarray_get_volatile(tp->stamps, zarray_size(tp->stamps) - 1, &stamp);
+    double tottime = (stamp->utime - lastutime)/1000000.0;
+
+    printf(
+        "\nProfiling Information:\n%2s %32s %18s %18s %12s\n",
+        "#", "STEP DESCRIPTION", "STEP TIME", "CUMULATIVE TIME", "PERCENT"
+    );
+
     for (int i = 0; i < zarray_size(tp->stamps); i++) {
         struct timeprofile_entry *stamp;
 
@@ -97,7 +106,12 @@ static inline void timeprofile_display(timeprofile_t *tp)
 
         double parttime = (stamp->utime - lastutime)/1000000.0;
 
-        printf("%2d %32s %15f ms %15f ms\n", i, stamp->name, parttime*1000, cumtime*1000);
+        double percent = (parttime / tottime) * 100.0;
+
+        printf(
+            "%2d %32s %15f ms %15f ms %10.1f %%\n",
+            i, stamp->name, parttime*1000, cumtime*1000, percent
+        );
 
         lastutime = stamp->utime;
     }
